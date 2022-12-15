@@ -734,3 +734,10 @@ $(BINARY_DEPS_DIR)/linux-%:
 ifneq ($(FETCH_BINARIES_TARGETS),)
 .SECONDARY: $(call FULL_FETCH_BINARIES_TARGETS, $(FETCH_BINARIES_TARGETS))
 endif
+
+
+.PHONY: eaw-local-e2e
+eaw-local-e2e: e2e
+	./bin/e2e.test -test.v -test.run TestClusterReuse $(GO_TEST_FLAGS)
+	# #GOOS=$(GO_OS) GOARCH=$(GO_ARCH) dlv test ./test/e2e/cluster_reuse_test.go --build-flags="-tags $(E2E_TAGS) -ldflags \"-X github.com/aws/eks-anywhere/pkg/version.gitVersion=$(DEV_GIT_VERSION) -X github.com/aws/eks-anywhere/pkg/cluster.releasesManifestURL=$(RELEASE_MANIFEST_URL) -X github.com/aws/eks-anywhere/pkg/manifests/releases.manifestURL=$(RELEASE_MANIFEST_URL\")"
+	# dlv exec ./bin/e2e.test
