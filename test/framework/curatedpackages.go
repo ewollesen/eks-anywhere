@@ -1,6 +1,7 @@
 package framework
 
 import (
+	"log"
 	"os"
 	"testing"
 )
@@ -23,6 +24,15 @@ func WithPackageConfig(t *testing.T, bundleURI, chartName, chartURI,
 				HelmClient:   buildHelm(t),
 			},
 			bundleURI: bundleURI,
+		}
+		if e.ClusterConfig != nil {
+			if e.ClusterConfig.Cluster != nil {
+				log.Printf("!!!! with package config has kube version: %q !!!!", e.ClusterConfig.Cluster.Spec.KubernetesVersion)
+			} else {
+				log.Printf("!!!! No cluster found !!!!")
+			}
+		} else {
+			log.Printf("!!!! No cluster config found !!!!")
 		}
 	}
 }
