@@ -20,15 +20,15 @@ func buildLocalKubectl() *executables.Kubectl {
 }
 
 func executableBuilder(t *testing.T, ctx context.Context) *executables.ExecutablesBuilder {
-	executableBuilder, close, err := executables.InitInDockerExecutablesBuilder(ctx, executables.DefaultEksaImage())
+	executableBuilder, _, err := executables.InitInDockerExecutablesBuilder(ctx, executables.DefaultEksaImage())
 	if err != nil {
 		t.Fatalf("Unable initialize executable builder: %v", err)
 	}
-	t.Cleanup(func() {
-		if err := close(ctx); err != nil {
-			t.Fatal(err)
-		}
-	})
+	// t.Cleanup(func() {
+	// 	if err := close(ctx); err != nil {
+	// 		t.Fatal(err)
+	// 	}
+	// })
 
 	return executableBuilder
 }
@@ -40,9 +40,9 @@ func buildGovc(t *testing.T) *executables.Govc {
 		t.Fatalf("Error creating tmp writer")
 	}
 	govc := executableBuilder(t, ctx).BuildGovcExecutable(tmpWriter)
-	t.Cleanup(func() {
-		govc.Close(ctx)
-	})
+	// t.Cleanup(func() {
+	// 	govc.Close(ctx)
+	// })
 
 	return govc
 }

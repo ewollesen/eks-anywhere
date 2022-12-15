@@ -14,6 +14,7 @@ import (
 
 	"github.com/aws/eks-anywhere/internal/pkg/api"
 	"github.com/aws/eks-anywhere/pkg/api/v1alpha1"
+	"github.com/aws/eks-anywhere/pkg/constants"
 	"github.com/aws/eks-anywhere/pkg/kubeconfig"
 	"github.com/aws/eks-anywhere/pkg/types"
 	"github.com/aws/eks-anywhere/test/framework"
@@ -205,13 +206,20 @@ func setupSimpleMultiCluster(t *testing.T, provider framework.Provider, kubeVers
 	return test
 }
 
+func runCuratedPackageInstallWithName(name string) func(*framework.ClusterE2ETest) {
+	return func(test *framework.ClusterE2ETest) {
+		test.T.Logf("\n\n!!!\n!!! runCuratedPackageInstall %q\n!!!\n\n", name)
+		fmt.Printf("\n\n!!!\n!!! runCuratedPackageInstall %q\n!!!\n\n", name)
+		packageName := "hello-eks-anywhere"
+		test.InstallCuratedPackage(packageName, name, kubeconfig.FromClusterName(test.ClusterName), constants.EksaPackagesName)
+		fmt.Printf("\n\n!!!\n!!! package installed, now to verify %q\n!!!\n\n", name)
+		test.VerifyHelloPackageInstalled(name, withMgmtCluster(test))
+		fmt.Printf("\n\n!!!\n!!! package verified, test returning %q\n!!!\n\n", name)
+	}
+}
+
 func runCuratedPackageInstall(test *framework.ClusterE2ETest) {
-	test.SetPackageBundleActive()
-	packageName := "hello-eks-anywhere"
-	packagePrefix := "test"
-	packageFile := test.BuildPackageConfigFile(packageName, packagePrefix, EksaPackagesNamespace)
-	test.InstallCuratedPackageFile(packageFile, kubeconfig.FromClusterName(test.ClusterName))
-	test.VerifyHelloPackageInstalled(packagePrefix+"-"+packageName, withMgmtCluster(test))
+	runCuratedPackageInstallWithName("test")(test)
 }
 
 func runCuratedPackageRemoteClusterInstallSimpleFlow(test *framework.MulticlusterE2ETest) {
