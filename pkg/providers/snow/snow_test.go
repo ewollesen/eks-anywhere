@@ -907,7 +907,6 @@ func TestUpgradeNeededDatacenterError(t *testing.T) {
 }
 
 func TestUpgradeNeededMachineConfigNil(t *testing.T) {
-	t.SkipNow()
 	tt := newSnowTest(t)
 	tt.kubeUnAuthClient.EXPECT().KubeconfigClient(tt.cluster.KubeconfigFile).Return(tt.kubeconfigClient).Times(2)
 	tt.kubeconfigClient.EXPECT().
@@ -935,7 +934,6 @@ func TestUpgradeNeededMachineConfigNil(t *testing.T) {
 }
 
 func TestUpgradeNeededMachineConfigError(t *testing.T) {
-	t.SkipNow()
 	tt := newSnowTest(t)
 	tt.kubeUnAuthClient.EXPECT().KubeconfigClient(tt.cluster.KubeconfigFile).Return(tt.kubeconfigClient).Times(2)
 	tt.kubeconfigClient.EXPECT().

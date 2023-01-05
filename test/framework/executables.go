@@ -19,10 +19,13 @@ func buildLocalKubectl() *executables.Kubectl {
 }
 
 func executableBuilder(ctx context.Context, t T) *executables.ExecutablesBuilder {
+	// TODO Reusable tests modification (the _ should be the close function
+	// commented out below.)
 	executableBuilder, _, err := executables.InitInDockerExecutablesBuilder(ctx, executables.DefaultEksaImage())
 	if err != nil {
 		t.Fatalf("Unable initialize executable builder: %v", err)
 	}
+	// TODO Reusable tests need a way to defer this..?
 	// t.Cleanup(func() {
 	// 	if err := close(ctx); err != nil {
 	// 		t.Fatal(err)
@@ -39,6 +42,7 @@ func buildGovc(t T) *executables.Govc {
 		t.Fatalf("Error creating tmp writer")
 	}
 	govc := executableBuilder(ctx, t).BuildGovcExecutable(tmpWriter)
+	// TODO Reusable tests need a way to defer this..?
 	// t.Cleanup(func() {
 	// 	govc.Close(ctx)
 	// })

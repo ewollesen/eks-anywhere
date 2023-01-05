@@ -208,13 +208,9 @@ func setupSimpleMultiCluster(t *testing.T, provider framework.Provider, kubeVers
 
 func runCuratedPackageInstallWithName(name string) func(*framework.ClusterE2ETest) {
 	return func(test *framework.ClusterE2ETest) {
-		test.T.Logf("\n\n!!!\n!!! runCuratedPackageInstall %q\n!!!\n\n", name)
-		fmt.Printf("\n\n!!!\n!!! runCuratedPackageInstall %q\n!!!\n\n", name)
 		packageName := "hello-eks-anywhere"
 		test.InstallCuratedPackage(packageName, name, kubeconfig.FromClusterName(test.ClusterName), constants.EksaPackagesName)
-		fmt.Printf("\n\n!!!\n!!! package installed, now to verify %q\n!!!\n\n", name)
 		test.VerifyHelloPackageInstalled(name, withMgmtCluster(test))
-		fmt.Printf("\n\n!!!\n!!! package verified, test returning %q\n!!!\n\n", name)
 	}
 }
 

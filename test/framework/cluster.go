@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"testing"
 	"time"
 
 	rapi "github.com/tinkerbell/rufio/api/v1alpha1"
@@ -64,15 +63,6 @@ var oidcRoles []byte
 
 //go:embed testdata/hpa_busybox.yaml
 var hpaBusybox []byte
-
-// Logger does logging for a test, but independent of the test.
-//
-// This is useful when reusing a cluster as messages might need to be logged
-// independently of a test.
-type Logger interface {
-	Log(args ...any)
-	Logf(format string, args ...any)
-}
 
 type ClusterE2ETest struct {
 	T                      T
@@ -135,9 +125,10 @@ func NewClusterE2ETest(t T, provider Provider, opts ...ClusterE2ETestOpt) *Clust
 
 	provider.Setup()
 
+	// TODO Reusable tests need a way to defer these tasks!!
 	// e.T.Cleanup(func() {
 	// 	e.CleanupVms()
-
+	//
 	// 	tinkerbellCIEnvironment := os.Getenv(TinkerbellCIEnvironment)
 	// 	if e.Provider.Name() == TinkerbellProviderName && tinkerbellCIEnvironment == "true" {
 	// 		e.CleanupDockerEnvironment()
@@ -621,11 +612,6 @@ func (e *ClusterE2ETest) createCluster(opts ...CommandOpt) {
 	}
 
 	e.RunEKSA(createClusterArgs, opts...)
-	e.cleanup(func() {
-		if false {
-			os.RemoveAll(e.ClusterName)
-		}
-	})
 }
 
 func (e *ClusterE2ETest) ValidateCluster(kubeVersion v1alpha1.KubernetesVersion) {
@@ -929,11 +915,13 @@ func (e *ClusterE2ETest) GetEksaVSphereMachineConfigs() []v1alpha1.VSphereMachin
 }
 
 func GetTestNameHash(name string) string {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	base := make([]byte, 16)
-	r.Read(base)
 	h := sha1.New()
 	h.Write([]byte(name))
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// TODO Reusable clusters need this to be properly random... I think? Does
+	// it being random negatively impact other processes?
+	base := make([]byte, 16)
+	r.Read(base)
 	h.Write(base)
 	testNameHash := fmt.Sprintf("%x", h.Sum(nil))
 	return testNameHash[:7]
@@ -1062,16 +1050,6 @@ func (e *ClusterE2ETest) InstallCuratedPackageFile(packageFile, kubeconfig strin
 	e.T.Log("Installing EKS-A Packages file", packageFile)
 	e.RunEKSA([]string{
 		"apply", "package", "-f", packageFile, "-v=9", strings.Join(opts, " "),
-	})
-}
-
-// UninstallCuratedPackageFile will uninstall a curated package from an install name.
-func (e *ClusterE2ETest) UninstallCuratedPackageFile(packageName, kubeconfig string, opts ...string) {
-	e.T.Setenv("CURATED_PACKAGES_SUPPORT", "true")
-	e.T.Setenv("KUBECONFIG", kubeconfig)
-	e.T.Log("Uninstalling EKS-A Packages", packageName)
-	e.RunEKSA([]string{
-		"delete", "package", packageName, "--cluster=" + e.ClusterName, "-v=9", strings.Join(opts, " "),
 	})
 }
 
@@ -1211,30 +1189,19 @@ func (e *ClusterE2ETest) VerifyHarborPackageInstalled(prefix string, namespace s
 	}
 }
 
-func alert(t *testing.T, msg string) {
-	t.Helper()
-	t.Logf("\n\n!!!\n!!! %s\n!!!\n\n", msg)
-}
-
 // VerifyHelloPackageInstalled is checking if the hello eks anywhere package gets installed correctly.
 func (e *ClusterE2ETest) VerifyHelloPackageInstalled(name string, mgmtCluster *types.Cluster) {
-	fmt.Printf("\n\n^^^ Verify has started %q ^^^\n\n", name)
 	ctx := context.Background()
 	// packagesNS is the namespace where the Package resource is defined.
 	packagesNS := constants.EksaPackagesName + "-" + e.ClusterName
-	// helloPackageNS is the namespace where the Package installation occurred.
+	// helloPackageNS is the target namespace where the Package installation occurred.
 	helloPackageNS := "default"
 
 	e.T.Log("Waiting for Package", name, "To be installed")
-	fmt.Printf("\n\n^^^ Verify has started step2 %q ^^^\n\n", name)
 	err := e.KubectlClient.WaitForPackagesInstalled(ctx, mgmtCluster, name, "5m", packagesNS)
 	if err != nil {
-		_ = exec.Command("/usr/bin/notify-send", "PAUSING ON ERROR", "GO GO GO GO GO GO").Run()
-		alert(e.T, "error: "+err.Error())
-		time.Sleep(time.Hour)
-		e.T.Fatalf("waiting for hello-eks-anywhere package timed out: %s", err)
+		e.T.Fatalf("waiting for %s-hello-eks-anywhere package installation timed out: %s", name, err)
 	}
-	fmt.Printf("\n\n^^^ Verify has started step3 %q ^^^\n\n", name)
 
 	// An immediate failure here, citing that the deployment wasn't found, can
 	// indicate a credentials failure causing an image pull failure.
@@ -1242,10 +1209,7 @@ func (e *ClusterE2ETest) VerifyHelloPackageInstalled(name string, mgmtCluster *t
 	err = e.KubectlClient.WaitForDeployment(ctx,
 		e.cluster(), "5m", "Available", "hello-eks-anywhere", helloPackageNS)
 	if err != nil {
-		_ = exec.Command("/usr/bin/notify-send", "PAUSING ON ERROR", "GO GO GO GO GO GO").Run()
-		alert(e.T, "error: "+err.Error())
-		time.Sleep(time.Hour)
-		e.T.Fatalf("%s waiting for %q deployment timed out: %s", time.Now(), "hello-eks-anywhere", err)
+		e.T.Fatalf("waiting for %s-hello-eks-anywhere deployment timed out: %s", name, err)
 	}
 
 	svcAddress := name + "-hello-eks-anywhere." + helloPackageNS + ".svc.cluster.local"
