@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -35,7 +34,6 @@ func JoinClusterConfigFillers(fillers ...ClusterConfigFiller) ClusterConfigFille
 
 func WithKubernetesVersion(v anywherev1.KubernetesVersion) ClusterFiller {
 	return func(c *anywherev1.Cluster) {
-		log.Printf("!!!! I'm setting the kubernetes version to %q !!!!", v)
 		c.Spec.KubernetesVersion = v
 	}
 }

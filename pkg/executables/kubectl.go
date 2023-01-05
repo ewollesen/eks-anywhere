@@ -548,7 +548,6 @@ func (k *Kubectl) waitJSONPathLoop(ctx context.Context, kubeconfig string, timeo
 				"--kubeconfig", kubeconfig,
 				"-n", namespace,
 			}
-			logger.V(6).Info("waitJSONPathLoop", "params", params)
 			stdout, err := k.Execute(ctx, params...)
 			if err != nil {
 				return fmt.Errorf("waiting for %s %s on %s: %w", jsonpath, forCondition, property, err)
@@ -905,10 +904,8 @@ func (k *Kubectl) ValidatePods(ctx context.Context, kubeconfig string) error {
 
 // RunBusyBoxPod will run Kubectl run with a busybox curl image and the command you pass in.
 func (k *Kubectl) RunBusyBoxPod(ctx context.Context, namespace, name, kubeconfig string, command []string) (string, error) {
-	params := []string{"run", name, "--image=yauritux/busybox-curl", "-o", "json", "--kubeconfig", kubeconfig, "--namespace", namespace, "--restart=Never", "--command", "--"}
+	params := []string{"run", name, "--image=yauritux/busybox-curl", "-o", "json", "--kubeconfig", kubeconfig, "--namespace", namespace, "--restart=Never", "--"}
 	params = append(params, command...)
-
-	logger.Info("!!!! busy box params !!!!", "params", params)
 	_, err := k.Execute(ctx, params...)
 	if err != nil {
 		return "", err
