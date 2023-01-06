@@ -23,14 +23,18 @@ type testClusterProvider interface {
 }
 
 type vsphereClusterManager struct {
-	mu      sync.Mutex
-	e2eTest *framework.ClusterE2ETest
+	mu             sync.Mutex
+	test           *framework.ClusterE2ETest
+	clusterBuilder ClusterBuilder
 }
+
+type ClusterBuilder func(*testing.T, framework.Provider) *framework.ClusterE2ETest
 
 func (m *vsphereClusterManager) Setup() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.e2eTest = nil
+
+	m.test = nil
 	return nil
 }
 
@@ -38,10 +42,10 @@ func (m *vsphereClusterManager) Teardown() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	// Tests are completed at this point, so any logging will cause a panic
-	m.e2eTest.T = &testing.T{}
-	m.e2eTest.StopIfFailed()
-	m.e2eTest.DeleteCluster()
-	m.e2eTest = nil
+	m.test.T = &testing.T{}
+	m.test.StopIfFailed()
+	m.test.DeleteCluster()
+	m.test = nil
 }
 
 type runFunc func(*framework.ClusterE2ETest)
@@ -52,7 +56,7 @@ func (m *vsphereClusterManager) WithCluster(t *testing.T, run runFunc, cleanup c
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if m.e2eTest == nil {
+	if m.test == nil {
 		test := framework.NewClusterE2ETest(t,
 			framework.NewVSphere(t, framework.WithBottleRocket123()),
 			framework.WithClusterFiller(api.WithKubernetesVersion(v1alpha1.Kube123)),
@@ -61,21 +65,24 @@ func (m *vsphereClusterManager) WithCluster(t *testing.T, run runFunc, cleanup c
 				EksaPackageControllerHelmVersion, EksaPackageControllerHelmValues))
 		test.GenerateClusterConfig()
 		test.CreateCluster()
-		m.e2eTest = test
+		m.test = test
 	} else {
-		t.Logf("Re-using existing test cluster %q", m.e2eTest.ClusterName)
-		m.e2eTest.T = t
+		t.Logf("Re-using existing test cluster %q", m.test.ClusterName)
+		m.test.T = t
 	}
 
 	defer func() {
-		m.e2eTest.T = framework.NewLoggingOnlyT()
-		cleanup(m.e2eTest)
+		m.test.T = framework.NewLoggingOnlyT()
+		cleanup(m.test)
 	}()
-	run(m.e2eTest)
+	run(m.test)
 }
 
 func init() {
-	manager = &vsphereClusterManager{}
+	builder := func(t *testing.T, p framework.Provider) *framework.ClusterE2ETest {
+		return framework.NewClusterE2ETest(t, p)
+	}
+	manager = &vsphereClusterManager{clusterBuilder: builder}
 }
 
 var _ testClusterProvider = (*vsphereClusterManager)(nil)
