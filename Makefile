@@ -729,6 +729,7 @@ ifneq ($(FETCH_BINARIES_TARGETS),)
 endif
 
 
+# DO NOT COMMIT
 .PHONY: eaw-local-e2e
 eaw-local-e2e: e2e
 	./bin/e2e.test -test.v -test.run TestClusterReuse $(GO_TEST_FLAGS)

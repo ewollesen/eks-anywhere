@@ -3019,7 +3019,7 @@ func TestGetPackageBundleList(t *testing.T) {
 func TestRunBusyBoxPod(t *testing.T) {
 	tt := newKubectlTest(t)
 	var b bytes.Buffer
-	expectedParam := []string{"run", "testpod-123", "--image=yauritux/busybox-curl", "-o", "json", "--kubeconfig", "c.kubeconfig", "--namespace", "eksa-packages", "--restart=Never", "--", "pwd"}
+	expectedParam := []string{"run", "testpod-123", "--image=yauritux/busybox-curl", "-o", "json", "--kubeconfig", "c.kubeconfig", "--namespace", "eksa-packages", "--restart=Never", "pwd"}
 	tt.e.EXPECT().Execute(gomock.Any(), gomock.Eq(expectedParam)).Return(b, nil).AnyTimes()
 	if _, err := tt.k.RunBusyBoxPod(tt.ctx, "eksa-packages", "testpod-123", tt.cluster.KubeconfigFile, []string{"pwd"}); err != nil {
 		t.Errorf("Kubectl.RunBusyBoxPod() error = %v, want nil", err)
