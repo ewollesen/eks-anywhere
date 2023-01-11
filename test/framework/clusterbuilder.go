@@ -17,6 +17,7 @@ type ClusterForE2E struct {
 	Provider Provider
 }
 
+// NewClusterBuilder TODO fill me in.
 func NewClusterBuilder(config *cluster.Config, provider Provider) *ClusterForE2E {
 	return &ClusterForE2E{
 		Config:   config,
@@ -24,17 +25,19 @@ func NewClusterBuilder(config *cluster.Config, provider Provider) *ClusterForE2E
 	}
 }
 
+// Build TODO fill me in.
 func (c *ClusterForE2E) Build(ctx context.Context) error {
 	// We're gonna need some access to an EKSA binary...
 	return nil
 }
 
+// Teardown TODO fill me in.
 func (c *ClusterForE2E) Teardown(ctx context.Context) error { return nil }
 
-func (c *ClusterForE2E) runEKSA(ctx context.Context, args ...any) error {
-
-	return nil
-}
+// // runEKSA TODO fill me in.
+// func (c *ClusterForE2E) runEKSA(ctx context.Context, args ...any) error {
+// 	return nil
+// }
 
 // func (e *ClusterE2ETest) Run(name string, args ...string) {
 // 	command := strings.Join(append([]string{name}, args...), " ")

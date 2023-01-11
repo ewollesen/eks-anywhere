@@ -1233,7 +1233,7 @@ func (e *ClusterE2ETest) VerifyHelloPackageInstalled(name string, mgmtCluster *t
 	// indicate a credentials failure causing an image pull failure.
 	e.T.Logf("%s Waiting for Package %q Deployment to be healthy", time.Now(), name)
 	err = e.KubectlClient.WaitForDeployment(ctx,
-		e.cluster(), "5m", "Available", "hello-eks-anywhere", helloPackageNS)
+		e.Cluster(), "5m", "Available", "hello-eks-anywhere", helloPackageNS)
 	if err != nil {
 		e.T.Fatalf("waiting for %s-hello-eks-anywhere deployment timed out: %s", name, err)
 	}
