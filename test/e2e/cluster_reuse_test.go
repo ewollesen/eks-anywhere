@@ -42,7 +42,8 @@ func (m *vsphereClusterManager) Teardown() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	// Tests are completed at this point, so any logging will cause a panic
-	m.test.T = &testing.T{}
+	t := framework.NewLoggingOnlyT()
+	m.test.T = t
 	m.test.StopIfFailed()
 	m.test.DeleteCluster()
 	m.test = nil
@@ -104,6 +105,10 @@ func TestClusterReuse(s *testing.T) {
 	s.Run("test number two", func(t *testing.T) {
 		manager.WithCluster(s, runCuratedPackageInstallWithName("test2"), cleanupCuratedPackageInstall("test2"))
 	})
+}
+
+func TestClusterReuseThree(s *testing.T) {
+	manager.WithCluster(s, runCuratedPackageInstallWithName("test3"), cleanupCuratedPackageInstall("test3"))
 }
 
 func cleanupCuratedPackageInstall(name string) func(*framework.ClusterE2ETest) {
