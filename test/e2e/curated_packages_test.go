@@ -14,7 +14,6 @@ import (
 
 	"github.com/aws/eks-anywhere/internal/pkg/api"
 	"github.com/aws/eks-anywhere/pkg/api/v1alpha1"
-	"github.com/aws/eks-anywhere/pkg/constants"
 	"github.com/aws/eks-anywhere/pkg/kubeconfig"
 	"github.com/aws/eks-anywhere/pkg/types"
 	"github.com/aws/eks-anywhere/test/framework"
@@ -209,7 +208,7 @@ func setupSimpleMultiCluster(t *testing.T, provider framework.Provider, kubeVers
 func runCuratedPackageInstallWithName(name string) func(*framework.ClusterE2ETest) {
 	return func(test *framework.ClusterE2ETest) {
 		packageName := "hello-eks-anywhere"
-		test.InstallCuratedPackage(packageName, name, kubeconfig.FromClusterName(test.ClusterName), constants.EksaPackagesName)
+		test.InstallCuratedPackage(packageName, name, kubeconfig.FromClusterName(test.ClusterName))
 		test.VerifyHelloPackageInstalled(name, withMgmtCluster(test))
 	}
 }
