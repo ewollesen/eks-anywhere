@@ -11,33 +11,20 @@ import (
 
 	"github.com/aws/eks-anywhere/internal/pkg/api"
 	"github.com/aws/eks-anywhere/pkg/api/v1alpha1"
-	"github.com/aws/eks-anywhere/pkg/cluster"
 	"github.com/aws/eks-anywhere/test/framework"
+	"github.com/aws/eks-anywhere/test/ptcluster"
 )
 
-var manager testClusterProvider
+var manager ptcluster.Manager
 
-type testClusterProvider interface {
-	Setup() error
-	Teardown()
-	WithCluster(*testing.T, Matcher, TestFunc, CleanupFunc)
-	SkipTeardownOnError() bool
-}
-
-// Matcher identifies if a given cluster can support an end-to-end test.
-type Matcher interface {
-	Matches(cluster.Spec) bool
-}
-
-type vsphereClusterManager struct {
+type vsphereOnlyClusterManager struct {
 	mu             sync.Mutex
 	test           *framework.ClusterE2ETest
-	clusterBuilder ClusterBuilder
+	failed         bool
+	clusterBuilder ptcluster.Builder
 }
 
-type ClusterBuilder func(*testing.T, framework.Provider) *framework.ClusterE2ETest
-
-func (m *vsphereClusterManager) Setup() error {
+func (m *vsphereOnlyClusterManager) Setup() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -45,26 +32,23 @@ func (m *vsphereClusterManager) Setup() error {
 	return nil
 }
 
-func (m *vsphereClusterManager) SkipTeardownOnError() bool {
+func (m *vsphereOnlyClusterManager) SkipTeardownOnError() bool {
 	return false
 }
 
-func (m *vsphereClusterManager) Teardown() {
+func (m *vsphereOnlyClusterManager) Teardown() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	// Tests are completed at this point, so any logging will cause a panic
 	t := framework.NewLoggingOnlyT()
 	m.test.T = t
-	m.test.StopIfFailed()
-	m.test.DeleteCluster()
+	if !m.failed || m.SkipTeardownOnError() {
+		m.test.DeleteCluster()
+	}
 	m.test = nil
 }
 
-type TestFunc func(*framework.ClusterE2ETest)
-
-type CleanupFunc func(*framework.ClusterE2ETest)
-
-func (m *vsphereClusterManager) WithCluster(t *testing.T, matcher Matcher, run TestFunc, cleanup CleanupFunc) {
+func (m *vsphereOnlyClusterManager) WithCluster(t *testing.T, matcher ptcluster.Matcher, run ptcluster.TestFunc, cleanup ptcluster.CleanupFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -88,16 +72,17 @@ func (m *vsphereClusterManager) WithCluster(t *testing.T, matcher Matcher, run T
 		cleanup(m.test)
 	}()
 	run(m.test)
+	m.failed = m.failed || m.test.T.Failed()
 }
 
 func init() {
 	builder := func(t *testing.T, p framework.Provider) *framework.ClusterE2ETest {
 		return framework.NewClusterE2ETest(t, p)
 	}
-	manager = &vsphereClusterManager{clusterBuilder: builder}
+	manager = &vsphereOnlyClusterManager{clusterBuilder: builder}
 }
 
-var _ testClusterProvider = (*vsphereClusterManager)(nil)
+var _ ptcluster.Manager = (*vsphereOnlyClusterManager)(nil)
 
 func TestMain(m *testing.M) {
 	if err := manager.Setup(); err != nil {
