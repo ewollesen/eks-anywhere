@@ -11,6 +11,7 @@ import (
 
 	"github.com/aws/eks-anywhere/internal/pkg/api"
 	"github.com/aws/eks-anywhere/pkg/api/v1alpha1"
+	"github.com/aws/eks-anywhere/pkg/cluster"
 	"github.com/aws/eks-anywhere/test/framework"
 )
 
@@ -19,7 +20,13 @@ var manager testClusterProvider
 type testClusterProvider interface {
 	Setup() error
 	Teardown()
-	WithCluster(*testing.T, runFunc, cleanupFunc)
+	WithCluster(*testing.T, Matcher, TestFunc, CleanupFunc)
+	SkipTeardownOnError() bool
+}
+
+// Matcher identifies if a given cluster can support an end-to-end test.
+type Matcher interface {
+	Matches(cluster.Spec) bool
 }
 
 type vsphereClusterManager struct {
@@ -38,6 +45,10 @@ func (m *vsphereClusterManager) Setup() error {
 	return nil
 }
 
+func (m *vsphereClusterManager) SkipTeardownOnError() bool {
+	return false
+}
+
 func (m *vsphereClusterManager) Teardown() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -49,11 +60,11 @@ func (m *vsphereClusterManager) Teardown() {
 	m.test = nil
 }
 
-type runFunc func(*framework.ClusterE2ETest)
+type TestFunc func(*framework.ClusterE2ETest)
 
-type cleanupFunc func(*framework.ClusterE2ETest)
+type CleanupFunc func(*framework.ClusterE2ETest)
 
-func (m *vsphereClusterManager) WithCluster(t *testing.T, run runFunc, cleanup cleanupFunc) {
+func (m *vsphereClusterManager) WithCluster(t *testing.T, matcher Matcher, run TestFunc, cleanup CleanupFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -94,21 +105,23 @@ func TestMain(m *testing.M) {
 	}
 	defer manager.Teardown()
 	code := m.Run()
-	os.Exit(code)
+	if code != 0 && manager.SkipTeardownOnError() {
+		os.Exit(code)
+	}
 }
 
 func TestClusterReuse(s *testing.T) {
 	s.Run("test number one", func(t *testing.T) {
-		manager.WithCluster(s, runCuratedPackageInstallWithName("test1"), cleanupCuratedPackageInstall("test1"))
+		manager.WithCluster(s, nil, runCuratedPackageInstallWithName("test1"), cleanupCuratedPackageInstall("test1"))
 	})
 
 	s.Run("test number two", func(t *testing.T) {
-		manager.WithCluster(s, runCuratedPackageInstallWithName("test2"), cleanupCuratedPackageInstall("test2"))
+		manager.WithCluster(s, nil, runCuratedPackageInstallWithName("test2"), cleanupCuratedPackageInstall("test2"))
 	})
 }
 
 func TestClusterReuseThree(s *testing.T) {
-	manager.WithCluster(s, runCuratedPackageInstallWithName("test3"), cleanupCuratedPackageInstall("test3"))
+	manager.WithCluster(s, nil, runCuratedPackageInstallWithName("test3"), cleanupCuratedPackageInstall("test3"))
 }
 
 func cleanupCuratedPackageInstall(name string) func(*framework.ClusterE2ETest) {
