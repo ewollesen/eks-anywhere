@@ -48,9 +48,14 @@ func (m *vsphereOnlyClusterManager) Teardown() {
 	m.test = nil
 }
 
-func (m *vsphereOnlyClusterManager) WithCluster(t *testing.T, matcher ptcluster.Matcher, run ptcluster.TestFunc, cleanup ptcluster.CleanupFunc) {
+func (m *vsphereOnlyClusterManager) WithCluster(t *testing.T, rqmts ptcluster.Requirements, run ptcluster.TestFunc, cleanup ptcluster.CleanupFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	if !rqmts.MatchesProvider(ptcluster.ProviderVsphere) {
+		t.Logf("persistent test cluster manager is unable to provide a matching cluster")
+		t.SkipNow()
+	}
 
 	if m.test == nil {
 		test := framework.NewClusterE2ETest(t,
@@ -96,17 +101,33 @@ func TestMain(m *testing.M) {
 }
 
 func TestClusterReuse(s *testing.T) {
+	rqmts := ptcluster.Requirements{
+		Providers: []ptcluster.Provider{ptcluster.ProviderVsphere},
+	}
+
 	s.Run("test number one", func(t *testing.T) {
-		manager.WithCluster(s, nil, runCuratedPackageInstallWithName("test1"), cleanupCuratedPackageInstall("test1"))
+		manager.WithCluster(s, rqmts, runCuratedPackageInstallWithName("test1"), cleanupCuratedPackageInstall("test1"))
 	})
 
 	s.Run("test number two", func(t *testing.T) {
-		manager.WithCluster(s, nil, runCuratedPackageInstallWithName("test2"), cleanupCuratedPackageInstall("test2"))
+		manager.WithCluster(s, rqmts, runCuratedPackageInstallWithName("test2"), cleanupCuratedPackageInstall("test2"))
 	})
 }
 
 func TestClusterReuseThree(s *testing.T) {
-	manager.WithCluster(s, nil, runCuratedPackageInstallWithName("test3"), cleanupCuratedPackageInstall("test3"))
+	rqmts := ptcluster.Requirements{
+		Providers: []ptcluster.Provider{ptcluster.ProviderVsphere},
+	}
+
+	manager.WithCluster(s, rqmts, runCuratedPackageInstallWithName("test3"), cleanupCuratedPackageInstall("test3"))
+}
+
+func TestClusterReuseFourIsSkipped(s *testing.T) {
+	rqmts := ptcluster.Requirements{
+		Providers: []ptcluster.Provider{ptcluster.ProviderDocker},
+	}
+
+	manager.WithCluster(s, rqmts, runCuratedPackageInstallWithName("test4"), cleanupCuratedPackageInstall("test4"))
 }
 
 func cleanupCuratedPackageInstall(name string) func(*framework.ClusterE2ETest) {
